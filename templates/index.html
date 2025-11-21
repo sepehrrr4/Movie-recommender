@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Movie Recommender{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-4">Movie Recommendations</h1>
+<p class="mb-4">Search for up to 3 of your favorite movies to get recommendations.</p>
+
+<form action="{{ url_for('recommend') }}" method="POST" class="mb-8">
+    <!-- Search Input and Results -->
+    <div class="relative mb-4">
+        <label for="movie-search" class="block text-gray-700 text-sm font-bold mb-2">Search for a movie:</label>
+        <input type="text" id="movie-search" placeholder="e.g., The Dark Knight" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        <div id="search-results" class="absolute z-10 w-full bg-white border rounded mt-1 hidden"></div>
+    </div>
+
+    <!-- Selected Movies Display -->
+    <div class="mb-4">
+        <h3 class="text-lg font-bold mb-2">Your Selections:</h3>
+        <div id="selected-movies" class="flex flex-wrap gap-2">
+            <!-- Selected movies will be added here by JS -->
+        </div>
+        <p id="selection-message" class="text-sm text-red-500 mt-2 hidden">You can select up to 3 movies.</p>
+    </div>
+
+    <!-- Hidden inputs for form submission -->
+    <div id="hidden-inputs"></div>
+
+    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+        Get Recommendations
+    </button>
+</form>
+
+<h1 class="text-3xl font-bold mb-4">All Movies</h1>
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    {% for movie in movies %}
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <a href="{{ url_for('movie_detail', movie_id=movie.id) }}">
+            <img src="{{ movie.poster_url }}" alt="{{ movie.title }} Poster" class="w-full h-64 object-cover">
+            <div class="p-4">
+                <h2 class="text-xl font-bold">{{ movie.title }}</h2>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    const searchInput = document.getElementById('movie-search');
+    const searchResults = document.getElementById('search-results');
+    const selectedMoviesContainer = document.getElementById('selected-movies');
+    const hiddenInputsContainer = document.getElementById('hidden-inputs');
+    const selectionMessage = document.getElementById('selection-message');
+
+    let selectedMovies = new Map();
+
+    // Live search on input
+    searchInput.addEventListener('input', async (e) => {
+        const query = e.target.value;
+        if (query.length < 2) {
+            searchResults.innerHTML = '';
+            searchResults.classList.add('hidden');
+            return;
+        }
+
+        const response = await fetch(`/search?q=${query}`);
+        const movies = await response.json();
+
+        searchResults.innerHTML = '';
+        if (movies.length > 0) {
+            movies.forEach(movie => {
+                // Don't show already selected movies in search results
+                if (!selectedMovies.has(movie.id)) {
+                    const div = document.createElement('div');
+                    div.textContent = movie.title;
+                    div.className = 'p-2 hover:bg-gray-200 cursor-pointer';
+                    div.dataset.movieId = movie.id;
+                    div.dataset.movieTitle = movie.title;
+                    div.addEventListener('click', handleMovieSelection);
+                    searchResults.appendChild(div);
+                }
+            });
+            searchResults.classList.remove('hidden');
+        } else {
+            searchResults.classList.add('hidden');
+        }
+    });
+
+    function handleMovieSelection(e) {
+        const movieId = parseInt(e.target.dataset.movieId);
+        const movieTitle = e.target.dataset.movieTitle;
+
+        if (selectedMovies.size < 3 && !selectedMovies.has(movieId)) {
+            selectedMovies.set(movieId, movieTitle);
+            updateSelectedMoviesDisplay();
+        }
+
+        if (selectedMovies.size >= 3) {
+            selectionMessage.classList.remove('hidden');
+        }
+
+        searchInput.value = '';
+        searchResults.innerHTML = '';
+        searchResults.classList.add('hidden');
+    }
+
+    function updateSelectedMoviesDisplay() {
+        selectedMoviesContainer.innerHTML = '';
+        hiddenInputsContainer.innerHTML = '';
+
+        selectedMovies.forEach((title, id) => {
+            // Create visual tag for selected movie
+            const tag = document.createElement('div');
+            tag.className = 'bg-blue-100 text-blue-800 text-sm font-medium me-2 px-2.5 py-0.5 rounded flex items-center';
+            tag.innerHTML = `
+                <span>${title}</span>
+                <button type="button" class="ml-2 text-blue-800" data-id="${id}">&times;</button>
+            `;
+            tag.querySelector('button').addEventListener('click', (e) => {
+                const idToRemove = parseInt(e.target.dataset.id);
+                selectedMovies.delete(idToRemove);
+                selectionMessage.classList.add('hidden');
+                updateSelectedMoviesDisplay();
+            });
+            selectedMoviesContainer.appendChild(tag);
+
+            // Create hidden input for form submission
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'movies';
+            hiddenInput.value = id;
+            hiddenInputsContainer.appendChild(hiddenInput);
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Movie Recommendations{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-4">Recommended Movies (Page {{ page }})</h1>
+{% if recommendations %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {% for movie in recommendations %}
+        <div class="relative bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="absolute top-0 left-0 bg-blue-500 text-white font-bold text-xs py-1 px-2 rounded-br-lg">
+            </div>
+            <a href="{{ url_for('movie_detail', movie_id=movie.id) }}">
+                <img src="{{ movie.poster_url }}" alt="{{ movie.title }} Poster" class="w-full h-64 object-cover">
+            </a>
+            <div class="p-4">
+                <h2 class="text-xl font-bold">{{ movie.title }}</h2>
+                {% if scores and movie.id in scores %}
+                <p class="text-sm text-gray-600">Similarity Score: {{ "%.2f"|format(scores[movie.id]) }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-8 flex justify-between">
+        <a href="{{ url_for('home') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Back to Home
+        </a>
+        {% if has_next %}
+        <a href="{{ url_for('recommendations_list', page=page + 1) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Load More (Page {{ page + 1 }})
+        </a>
+        {% endif %}
+    </div>
+{% else %}
+    <p>No recommendations found based on your selection.</p>
+    <div class="mt-8">
+        <a href="{{ url_for('home') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Back to Home
+        </a>
+    </div>
+{% endif %}
+{% endblock %}
