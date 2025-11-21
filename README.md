@@ -24,7 +24,7 @@ Follow these steps to get the project running on your local machine:
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/your-username/movie-recommender.git](https://github.com/your-username/movie-recommender.git)
+    git clone [https://github.com/sepehrrr4/movie-recommender.git](https://github.com/sepehrrr4/movie-recommender.git)
     cd movie-recommender
     ```
 
