@@ -9,6 +9,7 @@
         {% for movie in recommendations %}
         <div class="relative bg-white rounded-lg shadow-md overflow-hidden">
             <div class="absolute top-0 left-0 bg-blue-500 text-white font-bold text-xs py-1 px-2 rounded-br-lg">
+                #{{ (page - 1) * 50 + loop.index }}
             </div>
             <a href="{{ url_for('movie_detail', movie_id=movie.id) }}">
                 <img src="{{ movie.poster_url }}" alt="{{ movie.title }} Poster" class="w-full h-64 object-cover">
