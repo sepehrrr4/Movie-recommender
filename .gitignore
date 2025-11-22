@@ -1,18 +1,16 @@
-# Python bytecode
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
+
+# Env files
+.env
+
+# TMDb cache
+tools/.tmdb_cache.json
 
 # Database
 *.db
 instance/
-*.sqlite3
 
-# Virtual environments
-venv/
-env/
-.env
-
-# IDE specific files (Optional)
+# VSCode
 .vscode/
-.idea/

@@ -1,5 +1,5 @@
 Flask
 Flask-SQLAlchemy
 pandas
-scikit-learn
-numpy
+requests
+python-dotenv

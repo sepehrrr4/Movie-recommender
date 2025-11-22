@@ -6,17 +6,90 @@
 <div class="container mt-5">
     <div class="row">
         <div class="col-md-4">
-            <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="img-fluid rounded">
+            <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="img-fluid rounded shadow-lg">
         </div>
         <div class="col-md-8">
-            <h1>{{ movie.title }}</h1>
-            <p><strong>Director:</strong> {{ movie.director }}</p>
-            <p><strong>Actors:</strong> {{ movie.actors }}</p>
-            <p><strong>Genre:</strong> {{ movie.genre }}</p>
+            <h1 class="mb-3">{{ movie.title }}</h1>
+            
+            <div class="d-flex align-items-center mb-3">
+                {% if movie.vote_average %}
+                <span class="badge bg-warning text-dark fs-5 me-2">
+                    <i class="bi bi-star-fill"></i> {{ "%.1f"|format(movie.vote_average) }}
+                </span>
+                {% endif %}
+                {% if movie.year %}
+                <span class="text-muted">{{ movie.year }}</span>
+                {% endif %}
+            </div>
+            
+            {% if movie.genre %}
+            <p><strong><i class="bi bi-film me-2"></i>Genre:</strong> {{ movie.genre }}</p>
+            {% endif %}
+            {% if movie.director %}
+            <p><strong><i class="bi bi-camera-video me-2"></i>Director:</strong> {{ movie.director }}</p>
+            {% endif %}
+            {% if movie.vote_count %}
+            <p><strong><i class="bi bi-people me-2"></i>Votes:</strong> {{ movie.vote_count }}</p>
+            {% endif %}
+            
             <hr>
+            <h5 class="fw-bold">Overview</h5>
             <p>{{ movie.description }}</p>
-            <a href="{{ url_for('home') }}" class="btn btn-primary">Back to Home</a>
+            
+            <a href="{{ url_for('home') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Back to Home
+            </a>
         </div>
     </div>
+    
+    {% if movie.trailer_key %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="fw-bold mb-4">
+                <i class="bi bi-play-circle text-danger me-2"></i>Trailer
+            </h3>
+            <div class="ratio ratio-16x9 shadow-lg rounded overflow-hidden">
+                <iframe src="https://www.youtube.com/embed/{{ movie.trailer_key }}" 
+                        title="YouTube video player" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if movie.actors_list %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="fw-bold mb-4">
+                <i class="bi bi-stars text-warning me-2"></i>Cast
+            </h3>
+            <div class="row g-4">
+                {% for actor in movie.actors_list %}
+                <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                    <div class="card h-100 shadow-sm border-0 hover-shadow" style="transition: all 0.3s ease;">
+                        <img src="{{ actor.profile_url }}" class="card-img-top" alt="{{ actor.name }}" style="height: 278px; object-fit: cover;">
+                        <div class="card-body p-2">
+                            <h6 class="card-title mb-1 small fw-bold">{{ actor.name }}</h6>
+                            {% if actor.character %}
+                            <p class="card-text text-muted small mb-0">{{ actor.character }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+<style>
+.hover-shadow:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.15) !important;
+}
+</style>
 {% endblock %}

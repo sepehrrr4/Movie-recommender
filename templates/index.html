@@ -3,49 +3,535 @@
 {% block title %}Movie Recommender{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold mb-4">Movie Recommendations</h1>
-<p class="mb-4">Search for up to 3 of your favorite movies to get recommendations.</p>
+<div class="mb-5">
+    <h1 class="h2 fw-bold">Movie Recommendations</h1>
+    <p class="text-muted">Search for up to 3 of your favorite movies to get personalized recommendations.</p>
+</div>
 
-<form action="{{ url_for('recommend') }}" method="POST" class="mb-8">
-    <!-- Search Input and Results -->
-    <div class="relative mb-4">
-        <label for="movie-search" class="block text-gray-700 text-sm font-bold mb-2">Search for a movie:</label>
-        <input type="text" id="movie-search" placeholder="e.g., The Dark Knight" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-        <div id="search-results" class="absolute z-10 w-full bg-white border rounded mt-1 hidden"></div>
+<form action="{{ url_for('recommend') }}" method="POST" class="mb-5 card shadow-sm p-4 border-0">
+    <div class="mb-3 position-relative">
+        <label for="movie-search" class="form-label fw-semibold">Search for a movie</label>
+        <input type="text" id="movie-search" placeholder="e.g., The Dark Knight" class="form-control form-control-lg shadow-sm" autocomplete="off">
+        <div id="search-results" class="list-group position-absolute w-100 mt-1 shadow-lg rounded d-none" style="z-index:1050; max-height:400px; overflow:auto"></div>
     </div>
 
-    <!-- Selected Movies Display -->
-    <div class="mb-4">
-        <h3 class="text-lg font-bold mb-2">Your Selections:</h3>
-        <div id="selected-movies" class="flex flex-wrap gap-2">
-            <!-- Selected movies will be added here by JS -->
-        </div>
-        <p id="selection-message" class="text-sm text-red-500 mt-2 hidden">You can select up to 3 movies.</p>
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Your Selections</label>
+        <div id="selected-movies" class="d-flex flex-wrap gap-2"></div>
+        <div id="selection-message" class="form-text text-danger d-none">You can select up to 3 movies.</div>
     </div>
 
-    <!-- Hidden inputs for form submission -->
     <div id="hidden-inputs"></div>
 
-    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-        Get Recommendations
+    <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+        <i class="bi bi-stars me-2"></i>Get Recommendations
     </button>
 </form>
 
-<h1 class="text-3xl font-bold mb-4">All Movies</h1>
-<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-    {% for movie in movies %}
-    <div class="bg-white rounded-lg shadow-md overflow-hidden">
-        <a href="{{ url_for('movie_detail', movie_id=movie.id) }}">
-            <img src="{{ movie.poster_url }}" alt="{{ movie.title }} Poster" class="w-full h-64 object-cover">
-            <div class="p-4">
-                <h2 class="text-xl font-bold">{{ movie.title }}</h2>
+{% if trending %}
+<section class="mb-5">
+    <h2 class="h4 mb-4 fw-bold">
+        <i class="bi bi-fire text-danger me-2"></i>Trending This Week
+    </h2>
+    <div class="row g-4">
+        {% for movie in trending %}
+        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+            <div class="card h-100 shadow-sm border-0 hover-shadow" style="transition: all 0.3s ease;">
+                <a href="{{ url_for('external_movie', tmdb_id=movie.tmdb_id) }}">
+                    <img src="{{ movie.poster_url }}" class="card-img-top" alt="{{ movie.title }} poster">
+                </a>
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-0 small">{{ movie.title }}</h6>
+                    <div class="text-warning small">
+                        <i class="bi bi-star-fill"></i> {{ "%.1f"|format(movie.vote_average) }}
+                    </div>
+                </div>
             </div>
-        </a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if now_playing %}
+<section class="mb-5">
+    <h2 class="h4 mb-4 fw-bold">
+        <i class="bi bi-play-circle text-success me-2"></i>Now Playing
+    </h2>
+    <div class="row g-4">
+        {% for movie in now_playing %}
+        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+            <div class="card h-100 shadow-sm border-0 hover-shadow" style="transition: all 0.3s ease;">
+                <a href="{{ url_for('external_movie', tmdb_id=movie.tmdb_id) }}">
+                    <img src="{{ movie.poster_url }}" class="card-img-top" alt="{{ movie.title }} poster">
+                </a>
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-0 small">{{ movie.title }}</h6>
+                    <div class="text-muted small">{{ movie.year }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if upcoming %}
+<section class="mb-5">
+    <h2 class="h4 mb-4 fw-bold">
+        <i class="bi bi-calendar-event text-primary me-2"></i>Coming Soon
+    </h2>
+    <div class="row g-4">
+        {% for movie in upcoming %}
+        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+            <div class="card h-100 shadow-sm border-0 hover-shadow" style="transition: all 0.3s ease;">
+                <a href="{{ url_for('external_movie', tmdb_id=movie.tmdb_id) }}">
+                    <img src="{{ movie.poster_url }}" class="card-img-top" alt="{{ movie.title }} poster">
+                </a>
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-0 small">{{ movie.title }}</h6>
+                    <div class="text-muted small">
+                        <i class="bi bi-calendar3"></i> {{ movie.release_date }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<div class="card shadow-sm border-0 p-3 mb-4 bg-light">
+    <div class="row g-3 align-items-center">
+        <div class="col-md-6">
+            <label for="movies-sort-select" class="form-label fw-semibold mb-1">
+                <i class="bi bi-sort-down me-2"></i>Sort Movies
+            </label>
+            <select id="movies-sort-select" class="form-select">
+                <option value="rating-desc" selected>Rating: High to Low</option>
+                <option value="rating-asc">Rating: Low to High</option>
+                <option value="year-desc">Year: Newest First</option>
+                <option value="year-asc">Year: Oldest First</option>
+                <option value="title-asc">Title: A → Z</option>
+                <option value="title-desc">Title: Z → A</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="movies-filter-select" class="form-label fw-semibold mb-1">
+                <i class="bi bi-funnel me-2"></i>Filter by IMDb Rating
+            </label>
+            <select id="movies-filter-select" class="form-select">
+                <option value="all" selected>Show All</option>
+                <option value="rating-8">8+ stars</option>
+                <option value="rating-7">7+ stars</option>
+                <option value="rating-6">6+ stars</option>
+                <option value="rating-5">5+ stars</option>
+            </select>
+        </div>
+        <div class="col-12 text-end mt-2">
+            <div id="movies-loading-indicator" class="text-primary small d-none">
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Updating list...
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 id="movies-section-heading" class="h4 mt-4 mb-4 fw-bold">
+    <i class="bi bi-trophy text-warning me-2"></i><span id="movies-heading-text">Top Rated Movies</span>
+</h2>
+<div id="top-rated-movies-row" class="row g-4">
+    {% for movie in movies %}
+    <div class="col-6 col-md-4 col-lg-3 movie-card" data-rating="{{ movie.vote_average or 0 }}" data-year="{{ movie.year or '' }}" data-title="{{ movie.title|lower }}">
+        <div class="card h-100 shadow-sm border-0 hover-shadow" style="transition: all 0.3s ease;">
+            {% if movie.tmdb_id %}
+            <a href="{{ url_for('external_movie', tmdb_id=movie.tmdb_id) }}">
+                <img src="{{ movie.poster_url }}" class="card-img-top" alt="{{ movie.title }} poster">
+            </a>
+            {% elif movie.db_id %}
+            <a href="{{ url_for('movie_detail', movie_id=movie.db_id) }}">
+                <img src="{{ movie.poster_url }}" class="card-img-top" alt="{{ movie.title }} poster">
+            </a>
+            {% else %}
+            <img src="{{ movie.poster_url }}" class="card-img-top" alt="{{ movie.title }} poster">
+            {% endif %}
+            <div class="card-body">
+                <h5 class="card-title mb-0">{{ movie.title }}</h5>
+            </div>
+        </div>
     </div>
     {% endfor %}
 </div>
 
+<div class="text-center my-5">
+    <button id="show-more-btn" class="btn btn-outline-primary btn-lg shadow-sm">
+        <i class="bi bi-plus-circle me-2"></i>Show More Movies
+    </button>
+    <div id="show-more-spinner" class="spinner-border text-primary ms-2 d-none" role="status"><span class="visually-hidden">Loading...</span></div>
+</div>
+
+<div id="movies-meta" data-total="{{ total_movies|default(0) }}" data-has-next="{{ 'true' if has_next_initial else 'false' }}" class="d-none"></div>
+
+<button id="back-to-top" type="button" class="btn btn-primary btn-lg shadow back-to-top-btn" aria-label="Back to top">
+    <i class="bi bi-arrow-up"></i>
+</button>
+
+<style>
+.hover-shadow:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.15) !important;
+}
+.list-group-item-action {
+    cursor: pointer;
+}
+.list-group-item-action:hover {
+    background-color: #f8f9fa;
+}
+.movie-pill {
+    animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+.back-to-top-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff;
+    border: none;
+    box-shadow: 0 15px 25px rgba(37, 99, 235, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px) scale(0.9);
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+    z-index: 1100;
+    pointer-events: none;
+}
+.back-to-top-btn i {
+    font-size: 1.5rem;
+}
+.back-to-top-btn.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+.back-to-top-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.35);
+}
+</style>
+
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Pagination + filtering state for TMDb movies
+    const perPage = 20;
+    const metaEl = document.getElementById('movies-meta');
+    const showMoreBtn = document.getElementById('show-more-btn');
+    const showMoreSpinner = document.getElementById('show-more-spinner');
+    const moviesRow = document.getElementById('top-rated-movies-row');
+    const sortSelect = document.getElementById('movies-sort-select');
+    const filterSelect = document.getElementById('movies-filter-select');
+    const loadingIndicator = document.getElementById('movies-loading-indicator');
+    const headingTextEl = document.getElementById('movies-heading-text');
+
+    const initialHasNext = metaEl ? metaEl.dataset.hasNext === 'true' : true;
+
+    function getSortConfig(value) {
+        switch (value) {
+            case 'rating-asc':
+                return { sortBy: 'rating', order: 'asc' };
+            case 'year-desc':
+                return { sortBy: 'year', order: 'desc' };
+            case 'year-asc':
+                return { sortBy: 'year', order: 'asc' };
+            case 'title-asc':
+                return { sortBy: 'title', order: 'asc' };
+            case 'title-desc':
+                return { sortBy: 'title', order: 'desc' };
+            case 'rating-desc':
+            default:
+                return { sortBy: 'rating', order: 'desc' };
+        }
+    }
+
+    function getFilterValue(value) {
+        switch (value) {
+            case 'rating-8':
+                return 8;
+            case 'rating-7':
+                return 7;
+            case 'rating-6':
+                return 6;
+            case 'rating-5':
+                return 5;
+            default:
+                return 0;
+        }
+    }
+
+    const initialSortConfig = sortSelect ? getSortConfig(sortSelect.value) : { sortBy: 'rating', order: 'desc' };
+    const initialMinRating = filterSelect ? getFilterValue(filterSelect.value) : 0;
+
+    const moviesState = {
+        page: 1,
+        perPage,
+        sortBy: initialSortConfig.sortBy,
+        order: initialSortConfig.order,
+        minRating: initialMinRating,
+        hasNext: initialHasNext,
+        isLoading: false
+    };
+
+    function updateHeading() {
+        if (!headingTextEl) return;
+        let sortText = '';
+        let filterText = '';
+
+        switch (sortSelect?.value) {
+            case 'rating-desc':
+                sortText = 'Top Rated Movies';
+                break;
+            case 'rating-asc':
+                sortText = 'Lowest Rated Movies';
+                break;
+            case 'year-desc':
+                sortText = 'Latest Movies';
+                break;
+            case 'year-asc':
+                sortText = 'Oldest Movies';
+                break;
+            case 'title-asc':
+                sortText = 'Movies (A → Z)';
+                break;
+            case 'title-desc':
+                sortText = 'Movies (Z → A)';
+                break;
+            default:
+                sortText = 'Top Rated Movies';
+        }
+
+        switch (filterSelect?.value) {
+            case 'rating-8':
+                filterText = ' (8+ ⭐)';
+                break;
+            case 'rating-7':
+                filterText = ' (7+ ⭐)';
+                break;
+            case 'rating-6':
+                filterText = ' (6+ ⭐)';
+                break;
+            case 'rating-5':
+                filterText = ' (5+ ⭐)';
+                break;
+            default:
+                filterText = '';
+        }
+
+        headingTextEl.textContent = sortText + filterText;
+    }
+
+    function createMovieColumn(movie) {
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-4 col-lg-3 movie-card';
+        col.dataset.rating = (movie.vote_average ?? 0).toString();
+        col.dataset.year = (movie.year ?? '').toString();
+        col.dataset.title = (movie.title ?? '').toLowerCase();
+
+        const posterUrl = movie.poster_url || 'https://via.placeholder.com/500x750.png?text=No+Image';
+        const linkHref = movie.tmdb_id
+            ? `/external_movie/${movie.tmdb_id}`
+            : (movie.db_id ? `/movie/${movie.db_id}` : null);
+
+        const card = document.createElement('div');
+        card.className = 'card h-100 shadow-sm border-0 hover-shadow';
+        card.style.transition = 'all 0.3s ease';
+
+        const img = document.createElement('img');
+        img.src = posterUrl;
+        img.alt = `${movie.title || 'Movie'} poster`;
+        img.className = 'card-img-top';
+
+        if (linkHref) {
+            const anchor = document.createElement('a');
+            anchor.href = linkHref;
+            anchor.appendChild(img);
+            card.appendChild(anchor);
+        } else {
+            card.appendChild(img);
+        }
+
+        const body = document.createElement('div');
+        body.className = 'card-body';
+        body.innerHTML = `<h5 class="card-title mb-0">${movie.title || 'Untitled'}</h5>`;
+        card.appendChild(body);
+
+        col.appendChild(card);
+        return col;
+    }
+
+    async function fetchMovies({ page = 1, reset = false } = {}) {
+        if (moviesState.isLoading || !moviesRow) return;
+        const isAppending = !reset && page > 1;
+        const prevState = { page: moviesState.page, hasNext: moviesState.hasNext };
+        moviesState.isLoading = true;
+
+        if (reset) {
+            loadingIndicator?.classList.remove('d-none');
+            moviesRow.classList.add('opacity-50');
+            showMoreBtn?.classList.add('d-none');
+        } else if (isAppending) {
+            showMoreSpinner?.classList.remove('d-none');
+            if (showMoreBtn) showMoreBtn.disabled = true;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                page: page.toString(),
+                per_page: moviesState.perPage.toString(),
+                sort_by: moviesState.sortBy,
+                order: moviesState.order,
+                min_rating: moviesState.minRating.toString()
+            });
+            const resp = await fetch(`/movies_api?${params.toString()}`);
+            if (!resp.ok) throw new Error('fetch failed');
+            const data = await resp.json();
+            const results = Array.isArray(data.results) ? data.results : [];
+
+            if (reset) {
+                moviesRow.innerHTML = '';
+            }
+
+            if (results.length === 0 && reset) {
+                const empty = document.createElement('div');
+                empty.className = 'col-12 text-center text-muted py-5';
+                empty.textContent = 'No movies found for this filter.';
+                moviesRow.appendChild(empty);
+            } else {
+                results.forEach(movie => {
+                    moviesRow.appendChild(createMovieColumn(movie));
+                });
+            }
+
+            moviesState.page = page;
+            moviesState.hasNext = Boolean(data.has_next);
+
+            if (showMoreBtn) {
+                if (moviesState.hasNext) {
+                    showMoreBtn.classList.remove('d-none');
+                    showMoreBtn.disabled = false;
+                } else {
+                    showMoreBtn.classList.add('d-none');
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Could not load movies from the server.');
+            moviesState.page = prevState.page;
+            moviesState.hasNext = prevState.hasNext;
+            if (showMoreBtn) {
+                if (moviesState.hasNext) {
+                    showMoreBtn.classList.remove('d-none');
+                } else {
+                    showMoreBtn.classList.add('d-none');
+                }
+            }
+        } finally {
+            moviesState.isLoading = false;
+            loadingIndicator?.classList.add('d-none');
+            if (moviesRow) {
+                moviesRow.classList.remove('opacity-50');
+            }
+            showMoreSpinner?.classList.add('d-none');
+            if (moviesState.hasNext && showMoreBtn) {
+                showMoreBtn.disabled = false;
+            }
+        }
+    }
+
+    async function handleShowMore() {
+        if (!moviesState.hasNext || moviesState.isLoading) return;
+        const nextPage = moviesState.page + 1;
+        await fetchMovies({ page: nextPage, reset: false });
+    }
+
+    if (showMoreBtn) {
+        if (!moviesState.hasNext) {
+            showMoreBtn.classList.add('d-none');
+        }
+        showMoreBtn.addEventListener('click', handleShowMore);
+    }
+
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (event) => {
+            const config = getSortConfig(event.target.value);
+            moviesState.sortBy = config.sortBy;
+            moviesState.order = config.order;
+            moviesState.page = 1;
+            moviesState.hasNext = true;
+            updateHeading();
+            fetchMovies({ page: 1, reset: true });
+        });
+    }
+
+    if (filterSelect) {
+        filterSelect.addEventListener('change', (event) => {
+            moviesState.minRating = getFilterValue(event.target.value);
+            moviesState.page = 1;
+            moviesState.hasNext = true;
+            updateHeading();
+            fetchMovies({ page: 1, reset: true });
+        });
+    }
+
+    updateHeading();
+
+    const backToTopBtn = document.getElementById('back-to-top');
+    if (backToTopBtn) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        });
+
+        backToTopBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            const start = window.pageYOffset || document.documentElement.scrollTop;
+            const startTime = performance.now();
+            const duration = 800;
+            
+            const easeInOutQuad = (t) => {
+                return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+            };
+            
+            const animateScroll = (currentTime) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const ease = easeInOutQuad(progress);
+                
+                window.scrollTo(0, start * (1 - ease));
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateScroll);
+                }
+            };
+            
+            requestAnimationFrame(animateScroll);
+        });
+    }
+
+    // Live search functionality
     const searchInput = document.getElementById('movie-search');
     const searchResults = document.getElementById('search-results');
     const selectedMoviesContainer = document.getElementById('selected-movies');
@@ -54,83 +540,143 @@
 
     let selectedMovies = new Map();
 
-    // Live search on input
-    searchInput.addEventListener('input', async (e) => {
-        const query = e.target.value;
-        if (query.length < 2) {
-            searchResults.innerHTML = '';
-            searchResults.classList.add('hidden');
+    function debounce(fn, delay = 300) {
+        let t;
+        return (...args) => {
+            clearTimeout(t);
+            t = setTimeout(() => fn(...args), delay);
+        };
+    }
+
+    function renderSearchResults(movies) {
+        searchResults.innerHTML = '';
+        if (!Array.isArray(movies) || movies.length === 0) {
+            searchResults.classList.add('d-none');
             return;
         }
+        movies.forEach(movie => {
+            const key = (movie.source === 'db') ? `db:${movie.id}` : `tmdb:${movie.tmdb_id}`;
+            if (selectedMovies.has(key)) return;
 
-        const response = await fetch(`/search?q=${query}`);
-        const movies = await response.json();
+            const item = document.createElement('div');
+            item.className = 'list-group-item list-group-item-action d-flex align-items-center';
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', () => handleMovieSelection(movie));
 
-        searchResults.innerHTML = '';
-        if (movies.length > 0) {
-            movies.forEach(movie => {
-                // Don't show already selected movies in search results
-                if (!selectedMovies.has(movie.id)) {
-                    const div = document.createElement('div');
-                    div.textContent = movie.title;
-                    div.className = 'p-2 hover:bg-gray-200 cursor-pointer';
-                    div.dataset.movieId = movie.id;
-                    div.dataset.movieTitle = movie.title;
-                    div.addEventListener('click', handleMovieSelection);
-                    searchResults.appendChild(div);
-                }
-            });
-            searchResults.classList.remove('hidden');
-        } else {
-            searchResults.classList.add('hidden');
+            const img = document.createElement('img');
+            img.src = movie.poster_url;
+            img.alt = movie.title;
+            img.width = 48;
+            img.height = 72;
+            img.className = 'me-3 rounded shadow-sm';
+
+            const body = document.createElement('div');
+            body.style.flex = '1';
+            const overview = movie.overview ? movie.overview.replace(/\s+/g,' ').trim() : '';
+            const shortOverview = overview.length > 120 ? overview.slice(0,120) + '…' : overview;
+            body.innerHTML = `<div class="fw-semibold">${movie.title} ${movie.year ? '('+movie.year+')' : ''}</div><div class="text-muted small">${shortOverview}</div>`;
+
+            item.appendChild(img);
+            item.appendChild(body);
+            searchResults.appendChild(item);
+        });
+        searchResults.classList.remove('d-none');
+    }
+
+    async function performSearch(query) {
+        if (query.length < 2) {
+            searchResults.innerHTML = '';
+            searchResults.classList.add('d-none');
+            return;
+        }
+        searchResults.innerHTML = '<div class="list-group-item text-muted">Searching…</div>';
+        searchResults.classList.remove('d-none');
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const resp = await fetch(`/search?q=${encodeURIComponent(query)}`, {signal: controller.signal});
+            clearTimeout(timeoutId);
+            if (!resp.ok) throw new Error('search failed');
+            const movies = await resp.json();
+            renderSearchResults(movies);
+        } catch (e) {
+            if (e.name === 'AbortError') {
+                searchResults.innerHTML = '<div class="list-group-item text-danger">Timeout</div>';
+            } else {
+                searchResults.innerHTML = '<div class="list-group-item text-danger">Error loading results</div>';
+            }
+        }
+    }
+
+    searchInput.addEventListener('input', debounce(e => {
+        performSearch(e.target.value.trim());
+    }, 350));
+
+    document.addEventListener('click', (evt) => {
+        if (!searchResults.contains(evt.target) && evt.target !== searchInput) {
+            searchResults.classList.add('d-none');
         }
     });
 
-    function handleMovieSelection(e) {
-        const movieId = parseInt(e.target.dataset.movieId);
-        const movieTitle = e.target.dataset.movieTitle;
-
-        if (selectedMovies.size < 3 && !selectedMovies.has(movieId)) {
-            selectedMovies.set(movieId, movieTitle);
-            updateSelectedMoviesDisplay();
-        }
-
+    async function handleMovieSelection(movieObj) {
         if (selectedMovies.size >= 3) {
-            selectionMessage.classList.remove('hidden');
+            selectionMessage.classList.remove('d-none');
+            return;
         }
-
+        if (movieObj.source === 'db') {
+            const key = `db:${movieObj.id}`;
+            selectedMovies.set(key, movieObj.title);
+        } else if (movieObj.source === 'tmdb') {
+            const resp = await fetch('/upsert_tmdb', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({tmdb_id: movieObj.tmdb_id})
+            });
+            const body = await resp.json();
+            if (resp.ok && body.db_id) {
+                const key = `db:${body.db_id}`;
+                selectedMovies.set(key, movieObj.title);
+            } else {
+                alert('Could not add movie to local database.');
+                return;
+            }
+        }
+        updateSelectedMoviesDisplay();
+        if (selectedMovies.size >= 3) selectionMessage.classList.remove('d-none');
         searchInput.value = '';
         searchResults.innerHTML = '';
-        searchResults.classList.add('hidden');
+        searchResults.classList.add('d-none');
     }
 
     function updateSelectedMoviesDisplay() {
         selectedMoviesContainer.innerHTML = '';
         hiddenInputsContainer.innerHTML = '';
-
-        selectedMovies.forEach((title, id) => {
-            // Create visual tag for selected movie
-            const tag = document.createElement('div');
-            tag.className = 'bg-blue-100 text-blue-800 text-sm font-medium me-2 px-2.5 py-0.5 rounded flex items-center';
-            tag.innerHTML = `
+        selectedMovies.forEach((title, key) => {
+            const span = document.createElement('span');
+            span.className = 'badge bg-primary text-white movie-pill d-inline-flex align-items-center';
+            span.style.padding = '0.5rem';
+            span.innerHTML = `
                 <span>${title}</span>
-                <button type="button" class="ml-2 text-blue-800" data-id="${id}">&times;</button>
+                <button type="button" class="btn-close btn-close-white btn-sm ms-2" aria-label="Remove" data-key="${key}"></button>
             `;
-            tag.querySelector('button').addEventListener('click', (e) => {
-                const idToRemove = parseInt(e.target.dataset.id);
-                selectedMovies.delete(idToRemove);
-                selectionMessage.classList.add('hidden');
+            span.querySelector('button').addEventListener('click', (e) => {
+                const keyToRemove = e.target.dataset.key;
+                selectedMovies.delete(keyToRemove);
+                selectionMessage.classList.add('d-none');
                 updateSelectedMoviesDisplay();
+                // Re-render search results if the search input has a value
+                const currentQuery = searchInput.value.trim();
+                if (currentQuery.length > 1) performSearch(currentQuery);
             });
-            selectedMoviesContainer.appendChild(tag);
-
-            // Create hidden input for form submission
+            selectedMoviesContainer.appendChild(span);
+            const dbId = parseInt(key.split(':')[1]);
             const hiddenInput = document.createElement('input');
             hiddenInput.type = 'hidden';
             hiddenInput.name = 'movies';
-            hiddenInput.value = id;
+            hiddenInput.value = dbId;
             hiddenInputsContainer.appendChild(hiddenInput);
         });
     }
+});
 </script>
 {% endblock %}

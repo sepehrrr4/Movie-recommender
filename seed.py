@@ -30,20 +30,53 @@ def seed_database():
 
         # تکرار روی هر ردیف از دیتافریم
         for index, row in movies_df.iterrows():
-            # استخراج ژانرها
-            genres = [item['name'] for item in json.loads(row['genres'])]
+            # extract genres
+            genres = []
+            try:
+                genres = [item.get('name') for item in json.loads(row['genres']) if item.get('name')]
+            except Exception:
+                genres = []
 
-            # استخراج کارگردان
-            crew = json.loads(row['crew'])
-            director = next((item['name'] for item in crew if item['job'] == 'Director'), None)
+            # extract crew -> director and writers
+            director = None
+            writers = []
+            try:
+                crew = json.loads(row['crew'])
+                director = next((item.get('name') for item in crew if item.get('job') == 'Director'), None)
+                # common writer jobs
+                for item in crew:
+                    job = (item.get('job') or '').lower()
+                    if 'writer' in job or 'screenplay' in job or 'author' in job or 'story' in job:
+                        if item.get('name'):
+                            writers.append(item.get('name'))
+            except Exception:
+                director = None
 
-            # استخراج ۳ بازیگر اصلی
-            cast = [item['name'] for item in json.loads(row['cast'])[:3]]
+            # extract top 3 cast
+            cast = []
+            try:
+                cast = [item.get('name') for item in json.loads(row['cast'])[:3] if item.get('name')]
+            except Exception:
+                cast = []
 
-            # چون ستون پوستر وجود ندارد، یک URL جایگزین قرار می‌دهیم
-            poster_url = "https://via.placeholder.com/500x750.png?text=No+Image"
+            # poster path if present
+            poster_url = None
+            if 'poster_path' in row and not pd.isna(row['poster_path']):
+                poster_url = f"https://image.tmdb.org/t/p/w500{row['poster_path']}"
+            if not poster_url:
+                poster_url = "https://via.placeholder.com/500x750.png?text=No+Image"
 
-            # ساخت شیء فیلم
+            # year from release_date if possible
+            year = None
+            try:
+                if 'release_date' in row and not pd.isna(row['release_date']):
+                    year_str = str(row['release_date'])
+                    if len(year_str) >= 4:
+                        year = int(year_str[:4])
+            except Exception:
+                year = None
+
+            # build movie object
             description = '' if pd.isna(row['overview']) else row['overview']
             movie = Movie(
                 title=row['title'],
@@ -51,6 +84,8 @@ def seed_database():
                 poster_url=poster_url,
                 genre=', '.join(genres),
                 director=director,
+                writer=', '.join(writers) if writers else None,
+                year=year,
                 actors=', '.join(cast)
             )
             db.session.add(movie)

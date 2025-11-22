@@ -3,43 +3,203 @@
 {% block title %}Movie Recommendations{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold mb-4">Recommended Movies (Page {{ page }})</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 fw-bold mb-0">Recommended Movies</h1>
+    <a href="{{ url_for('home') }}" class="btn btn-outline-secondary shadow-sm">
+        <i class="bi bi-house-door me-2"></i>Back to Home
+    </a>
+</div>
+
 {% if recommendations %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div id="recommendations-grid" class="row g-4">
         {% for movie in recommendations %}
-        <div class="relative bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="absolute top-0 left-0 bg-blue-500 text-white font-bold text-xs py-1 px-2 rounded-br-lg">
-                #{{ (page - 1) * 50 + loop.index }}
-            </div>
-            <a href="{{ url_for('movie_detail', movie_id=movie.id) }}">
-                <img src="{{ movie.poster_url }}" alt="{{ movie.title }} Poster" class="w-full h-64 object-cover">
-            </a>
-            <div class="p-4">
-                <h2 class="text-xl font-bold">{{ movie.title }}</h2>
-                {% if scores and movie.id in scores %}
-                <p class="text-sm text-gray-600">Similarity Score: {{ "%.2f"|format(scores[movie.id]) }}</p>
-                {% endif %}
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="card h-100 rec-card shadow-sm border-0 hover-shadow" data-movie-id="{{ movie.id }}" style="transition: all 0.3s ease;">
+                <div class="position-relative">
+                    <span class="badge bg-primary position-absolute" style="top:.5rem; left:.5rem;">#{{ (page - 1) * per_page + loop.index }}</span>
+                    <a href="{{ url_for('movie_detail', movie_id=movie.id) }}">
+                        <img src="{{ movie.poster_url }}" class="card-img-top" alt="{{ movie.title }} Poster">
+                    </a>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ movie.title }}</h5>
+                    {% if scores and movie.id in scores %}
+                    <p class="card-text text-muted small">Similarity Score: {{ "%.2f"|format(scores[movie.id]) }}</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
         {% endfor %}
     </div>
 
-    <div class="mt-8 flex justify-between">
-        <a href="{{ url_for('home') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-            Back to Home
-        </a>
-        {% if has_next %}
-        <a href="{{ url_for('recommendations_list', page=page + 1) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-            Load More (Page {{ page + 1 }})
-        </a>
-        {% endif %}
+    {% if has_next %}
+    <div class="text-center my-5">
+        <button id="show-more" data-next-page="{{ page + 1 }}" class="btn btn-outline-primary btn-lg shadow-sm">
+            <i class="bi bi-plus-circle me-2"></i>Show More Recommendations
+        </button>
+        <div id="spinner" class="spinner-border text-primary ms-3 d-none" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
     </div>
+    {% endif %}
+
+    <script>
+        (function(){
+            const showMoreBtn = document.getElementById('show-more');
+            const grid = document.getElementById('recommendations-grid');
+            const spinner = document.getElementById('spinner');
+            const perPage = {{ per_page }};
+
+            if (!showMoreBtn) return;
+
+            showMoreBtn.addEventListener('click', async () => {
+                let nextPage = parseInt(showMoreBtn.dataset.nextPage, 10);
+                // show spinner and disable button
+                showMoreBtn.disabled = true;
+                if (spinner) spinner.classList.remove('hidden');
+                const btnIcon = document.getElementById('btn-icon'); if (btnIcon) btnIcon.classList.add('opacity-40');
+
+                try {
+                    const resp = await fetch(`/recommendations_data?page=${nextPage}`);
+                    if (!resp.ok) throw new Error('Network error');
+                    const data = await resp.json();
+
+                    data.results.forEach((m, idx) => {
+                        const overallIndex = (nextPage - 1) * perPage + idx + 1;
+                        const col = document.createElement('div');
+                        col.className = 'col-6 col-md-4 col-lg-3';
+                        col.innerHTML = `
+                            <div class="card h-100 rec-card shadow-sm border-0 hover-shadow" data-movie-id="${m.id}" style="transition: all 0.3s ease;">
+                                <div class="position-relative">
+                                    <span class="badge bg-primary position-absolute" style="top:.5rem; left:.5rem;">#${overallIndex}</span>
+                                    <a href="/movie/${m.id}">
+                                        <img src="${m.poster_url}" class="card-img-top" alt="${m.title} Poster">
+                                    </a>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">${m.title}</h5>
+                                    <p class="card-text text-muted small">Similarity Score: ${m.score.toFixed(2)}</p>
+                                </div>
+                            </div>
+                        `;
+                        grid.appendChild(col);
+                    });
+
+                    if (data.has_next) {
+                        showMoreBtn.dataset.nextPage = nextPage + 1;
+                        showMoreBtn.disabled = false;
+                        if (spinner) spinner.classList.add('hidden');
+                        if (btnIcon) btnIcon.classList.remove('opacity-40');
+                    } else {
+                        // No more pages
+                        showMoreBtn.remove();
+                        if (spinner) spinner.classList.add('hidden');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showMoreBtn.disabled = false;
+                    if (spinner) spinner.classList.add('hidden');
+                    if (btnIcon) btnIcon.classList.remove('opacity-40');
+                }
+            });
+        })();
+    </script>
+
+    <style>
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.15) !important;
+    }
+    </style>
 {% else %}
-    <p>No recommendations found based on your selection.</p>
-    <div class="mt-8">
-        <a href="{{ url_for('home') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-            Back to Home
+    <div class="alert alert-info shadow-sm" role="alert">
+        <i class="bi bi-info-circle me-2"></i>No recommendations found based on your selection.
+    </div>
+    <div class="mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-primary shadow-sm">
+            <i class="bi bi-house-door me-2"></i>Back to Home
         </a>
     </div>
 {% endif %}
+
+<button id="back-to-top" type="button" class="btn btn-primary btn-lg shadow back-to-top-btn" aria-label="Back to top">
+    <i class="bi bi-arrow-up"></i>
+</button>
+
+<style>
+.back-to-top-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff;
+    border: none;
+    box-shadow: 0 15px 25px rgba(37, 99, 235, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px) scale(0.9);
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+    z-index: 1100;
+    pointer-events: none;
+}
+.back-to-top-btn i {
+    font-size: 1.5rem;
+}
+.back-to-top-btn.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+.back-to-top-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.35);
+}
+</style>
+
+<script>
+// Back to top button
+const backToTopBtn = document.getElementById('back-to-top');
+if (backToTopBtn) {
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+            backToTopBtn.classList.add('show');
+        } else {
+            backToTopBtn.classList.remove('show');
+        }
+    });
+
+    backToTopBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        const start = window.pageYOffset || document.documentElement.scrollTop;
+        const startTime = performance.now();
+        const duration = 800;
+        
+        const easeInOutQuad = (t) => {
+            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        };
+        
+        const animateScroll = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const ease = easeInOutQuad(progress);
+            
+            window.scrollTo(0, start * (1 - ease));
+            
+            if (progress < 1) {
+                requestAnimationFrame(animateScroll);
+            }
+        };
+        
+        requestAnimationFrame(animateScroll);
+    });
+}
+</script>
 {% endblock %}
